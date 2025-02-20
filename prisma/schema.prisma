@@ -12,3 +12,98 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum UserStatus {
+  active
+  inactive
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+model User {
+  id             Int          @id @default(autoincrement())
+  email          String       @unique
+  name           String
+  last_name      String
+  description    String?
+  avatar         String?
+  status         UserStatus   @default(active)
+  email_verified DateTime?
+  password       String
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  role           UserRole     @default(user)
+  categories     categories[]
+  tags           tags[]
+  settings       settings[]
+  created_groups groups[]     @relation("UserCreatedGroups")
+  joined_groups  UserGroup[]
+}
+
+model groups {
+  id         Int         @id @default(autoincrement())
+  owner      User        @relation("UserCreatedGroups", fields: [owner_id], references: [id])
+  owner_id   Int
+  name       String
+  created_at DateTime    @default(now())
+  updated_at DateTime    @updatedAt
+  members    UserGroup[]
+}
+
+model UserGroup {
+  user     User   @relation(fields: [user_id], references: [id])
+  user_id  Int
+  group    groups @relation(fields: [group_id], references: [id])
+  group_id Int
+
+  @@id([user_id, group_id]) // Composite primary key
+}
+
+model expenses {
+  id           Int        @id @default(autoincrement())
+  user_id      Int
+  amount       Int
+  description  String
+  tags         tags[]
+  category     categories @relation(fields: [categoriesId], references: [id])
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+  categoriesId Int
+}
+
+model categories {
+  id            Int        @id @default(autoincrement())
+  name          String
+  created_by    User       @relation(fields: [created_by_id], references: [id])
+  created_by_id Int
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+  expenses      expenses[]
+}
+
+model tags {
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String?
+  created_by    User      @relation(fields: [created_by_id], references: [id])
+  created_by_id Int
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  expenses      expenses? @relation(fields: [expensesId], references: [id])
+  expensesId    Int?
+}
+
+model settings {
+  id       Int    @id @default(autoincrement())
+  user     User   @relation(fields: [user_id], references: [id])
+  user_id  Int
+  theme    String
+  currency String
+  language String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
